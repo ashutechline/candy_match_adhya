@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "303600090084",
+    "project_id": "candy-match-aadhya",
+    "storage_bucket": "candy-match-aadhya.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:303600090084:android:76f62ebb91f6c58cfbe5f1",
+        "android_client_info": {
+          "package_name": "com.fruitblast.match3.game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiBWw0Lf5hjFsEClAkfp43eca06fz6khM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
