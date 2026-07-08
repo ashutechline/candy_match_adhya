@@ -13,7 +13,12 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    try {
+        project.projectDir.toPath().relativize(newSubprojectBuildDir.asFile.toPath())
+        project.layout.buildDirectory.value(newSubprojectBuildDir)
+    } catch (e: IllegalArgumentException) {
+        // Different roots (e.g. on different Windows drives). Keep the default build directory to avoid Gradle errors.
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")
