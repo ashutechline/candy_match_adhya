@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../analytics/analytics_service.dart';
 import '../../game_logic/game_logic.dart';
@@ -6,6 +7,16 @@ import '../theme/candy_theme.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/section_card.dart';
 import '../widgets/tile_widget.dart';
+import '../../ads/native_ad_builder.dart';
+import '../../ads/mixins/native_ad_mixin.dart';
+
+class HowToPlayController extends GetxController with NativeAdMixin {
+  @override
+  void onInit() {
+    super.onInit();
+    loadSmallNativeAdAlways();
+  }
+}
 
 /// A static rules / help page: how to play, objective types, boosters, stars.
 class HowToPlayScreen extends StatefulWidget {
@@ -16,10 +27,19 @@ class HowToPlayScreen extends StatefulWidget {
 }
 
 class _HowToPlayScreenState extends State<HowToPlayScreen> {
+  late final HowToPlayController _adController;
+
   @override
   void initState() {
     super.initState();
     AnalyticsService.instance.logScreenView('HowToPlayScreen');
+    _adController = Get.put(HowToPlayController());
+  }
+
+  @override
+  void dispose() {
+    Get.delete<HowToPlayController>();
+    super.dispose();
   }
 
   @override
@@ -50,6 +70,7 @@ class _HowToPlayScreenState extends State<HowToPlayScreen> {
             ),
           ],
         ),
+        NativeAdBuilder.buildSmallAdWithSpacing(_adController, topSpacing: 0, bottomSpacing: 16),
         SectionCard(
           title: 'Objectives',
           children: [

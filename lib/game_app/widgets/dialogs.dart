@@ -195,3 +195,103 @@ class _SecondaryButton extends StatelessWidget {
     );
   }
 }
+
+Future<bool> showColorBombAdDialog(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) => _CandyDialog(
+      title: 'Use Color Bomb',
+      children: [
+        const Icon(Icons.play_circle_outline_rounded, size: 56, color: AppColors.accent),
+        const SizedBox(height: 16),
+        const Text(
+          'Watch a short video ad to use the Color Bomb booster.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'The booster will activate immediately after the ad plays.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: Colors.white60),
+        ),
+        const SizedBox(height: 24),
+        _PrimaryButton(
+          label: 'Watch Ad & Use',
+          icon: Icons.play_arrow_rounded,
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+        const SizedBox(height: 8),
+        _SecondaryButton(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
+}
+
+Future<bool> showExitGameDialog(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) => _CandyDialog(
+      title: 'Exit Level?',
+      children: [
+        const Icon(Icons.exit_to_app_rounded, size: 56, color: AppColors.accent),
+        const SizedBox(height: 16),
+        const Text(
+          'Are you sure you want to quit? Any progress in this level will be lost.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 24),
+        _PrimaryButton(
+          label: 'Yes, Exit',
+          icon: Icons.logout_rounded,
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+        const SizedBox(height: 8),
+        _SecondaryButton(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
+}
+
+Future<bool> showExitAppDialog(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) => _CandyDialog(
+      title: 'Exit Game',
+      children: [
+        const Icon(Icons.exit_to_app_rounded, size: 56, color: AppColors.accent),
+        const SizedBox(height: 16),
+        const Text(
+          'Are you sure you want to exit the game?',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 24),
+        _PrimaryButton(
+          label: 'Exit',
+          icon: Icons.power_settings_new_rounded,
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+        const SizedBox(height: 8),
+        _SecondaryButton(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
+}
+

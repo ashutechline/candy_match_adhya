@@ -1,3 +1,4 @@
+import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ class AnalyticsService {
 
   bool _isInitialized = false;
   FirebaseAnalytics? _analytics;
+  static final _facebookAppEvents = FacebookAppEvents();
 
   void init() {
     try {
@@ -25,18 +27,19 @@ class AnalyticsService {
   }
 
   void logEvent(String name, {Map<String, Object?>? parameters}) {
+    Map<String, Object>? cleanParams;
+    if (parameters != null) {
+      cleanParams = {};
+      for (final entry in parameters.entries) {
+        final val = entry.value;
+        if (val != null) {
+          cleanParams[entry.key] = val;
+        }
+      }
+    }
+
     if (_isInitialized && _analytics != null) {
       try {
-        Map<String, Object>? cleanParams;
-        if (parameters != null) {
-          cleanParams = {};
-          for (final entry in parameters.entries) {
-            final val = entry.value;
-            if (val != null) {
-              cleanParams[entry.key] = val;
-            }
-          }
-        }
         _analytics!.logEvent(name: name, parameters: cleanParams);
         debugPrint('AnalyticsService: Logged event "$name" with parameters: $cleanParams');
       } catch (e) {
@@ -45,6 +48,14 @@ class AnalyticsService {
     } else {
       debugPrint('AnalyticsService [MOCK]: Event "$name" with parameters: $parameters');
     }
+
+    // Log to Facebook App Events
+    try {
+      _facebookAppEvents.logEvent(name: name, parameters: cleanParams);
+      debugPrint('AnalyticsService: Logged Facebook App Event "$name" with parameters: $cleanParams');
+    } catch (e) {
+      debugPrint('AnalyticsService: Failed to log Facebook App Event "$name": $e');
+    }
   }
 
   void logScreenView(String screenName) {
@@ -52,12 +63,33 @@ class AnalyticsService {
       try {
         _analytics!.logScreenView(screenName: screenName);
         debugPrint('AnalyticsService: Logged screen view: "$screenName"');
+
+        // Log to Facebook App Events
+        try {
+          _facebookAppEvents.logEvent(
+            name: 'screen_view',
+            parameters: {'screen_name': screenName},
+          );
+          debugPrint('AnalyticsService: Logged Facebook screen view: "$screenName"');
+        } catch (e) {
+          debugPrint('AnalyticsService: Failed to log Facebook screen view "$screenName": $e');
+        }
       } catch (e) {
         debugPrint('AnalyticsService: Failed to log screen view "$screenName": $e');
         logEvent('screen_view', parameters: {'screen_name': screenName});
       }
     } else {
       debugPrint('AnalyticsService [MOCK]: Screen View: "$screenName"');
+      // Log to Facebook App Events
+      try {
+        _facebookAppEvents.logEvent(
+          name: 'screen_view',
+          parameters: {'screen_name': screenName},
+        );
+        debugPrint('AnalyticsService: Logged Facebook screen view [MOCK]: "$screenName"');
+      } catch (e) {
+        debugPrint('AnalyticsService: Failed to log Facebook screen view [MOCK] "$screenName": $e');
+      }
     }
   }
 

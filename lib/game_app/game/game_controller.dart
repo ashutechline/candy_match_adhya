@@ -239,6 +239,17 @@ class GameController extends ChangeNotifier {
     return result;
   }
 
+  /// Clear every tile of the board's most common colour using a rewarded ad (no charges consumed).
+  ResolutionResult? useColorBombFree() {
+    if (isBusy) return null;
+    final color = dominantColor(board);
+    final result = engine.applyClearColor(board, color);
+    if (!result.valid) return null;
+    AnalyticsService.instance.logBoosterUsed('color_bomb_free_ad', level.id);
+    _commitBoosterResult(result);
+    return result;
+  }
+
   void _commitBoosterResult(ResolutionResult result) {
     isBusy = true;
     board = result.board;

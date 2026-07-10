@@ -1,0 +1,250 @@
+package io.flutter.plugins.googlemobileadsexample;
+
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.RatingBar;
+import android.widget.TextView;
+
+import com.google.android.gms.ads.nativead.MediaView;
+import com.google.android.gms.ads.nativead.NativeAd;
+import com.google.android.gms.ads.nativead.NativeAdView;
+
+import java.util.Map;
+
+import io.flutter.plugins.googlemobileads.NativeAdFactory;
+import com.fruitblast.match3.game.R;
+
+public class NativeAdFactoryExample implements NativeAdFactory {
+
+  private final LayoutInflater layoutInflater;
+
+  // ✅ Default colors — consistent across all pages
+  private static final String DEFAULT_HEADLINE_COLOR = "#1e3a8a";
+  private static final String DEFAULT_BODY_COLOR = "#475569";
+  private static final String DEFAULT_BUTTON_BG_COLOR = "#059669";
+  private static final String DEFAULT_BUTTON_TEXT_COLOR = "#FFFFFF";
+
+  public NativeAdFactoryExample(LayoutInflater layoutInflater) {
+    this.layoutInflater = layoutInflater;
+  }
+
+  @Override
+  public NativeAdView createNativeAd(NativeAd nativeAd, Map<String, Object> customOptions) {
+    android.util.Log.d("NativeAdFactoryExample", "Creating native ad view");
+    android.util.Log.d("NativeAdFactoryExample", "Headline: " + nativeAd.getHeadline());
+    android.util.Log.d("NativeAdFactoryExample", "CTA: " + nativeAd.getCallToAction());
+    android.util.Log.d("NativeAdFactoryExample", "Custom options: " + customOptions);
+
+    final NativeAdView adView = (NativeAdView) layoutInflater.inflate(R.layout.my_native_ad, null);
+
+    adView.setLayoutParams(new android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+
+    // Register all views
+    adView.setMediaView((MediaView) adView.findViewById(R.id.ad_media));
+    adView.setHeadlineView(adView.findViewById(R.id.ad_headline));
+    adView.setBodyView(adView.findViewById(R.id.ad_body));
+    adView.setCallToActionView(adView.findViewById(R.id.ad_call_to_action));
+    adView.setIconView(adView.findViewById(R.id.ad_app_icon));
+    adView.setPriceView(adView.findViewById(R.id.ad_price));
+    adView.setStarRatingView(adView.findViewById(R.id.ad_stars));
+    adView.setStoreView(adView.findViewById(R.id.ad_store));
+    adView.setAdvertiserView(adView.findViewById(R.id.ad_advertiser));
+
+    // --- Headline (guaranteed) ---
+    TextView headlineView = (TextView) adView.getHeadlineView();
+    headlineView.setText(nativeAd.getHeadline());
+    headlineView.setVisibility(View.VISIBLE);
+
+    // --- Media (guaranteed) ---
+    adView.getMediaView().setMediaContent(nativeAd.getMediaContent());
+
+    // --- Body (optional) ---
+    TextView bodyView = (TextView) adView.getBodyView();
+    if (nativeAd.getBody() == null) {
+      bodyView.setVisibility(View.INVISIBLE);
+    } else {
+      bodyView.setVisibility(View.VISIBLE);
+      bodyView.setText(nativeAd.getBody());
+    }
+
+    // ✅ Always apply text styling — body null હોય તો પણ
+    applyCustomTextStyle(headlineView, bodyView, customOptions);
+
+    // --- CTA Button (optional) ---
+    Button ctaButton = (Button) adView.getCallToActionView();
+    if (nativeAd.getCallToAction() == null) {
+      ctaButton.setVisibility(View.INVISIBLE);
+    } else {
+      ctaButton.setVisibility(View.VISIBLE);
+      ctaButton.setText(nativeAd.getCallToAction());
+    }
+
+    // ✅ Always apply button styling — CTA null હોય તો પણ
+    applyCustomButtonStyle(ctaButton, customOptions);
+
+    // --- Icon (optional) ---
+    ImageView iconView = (ImageView) adView.getIconView();
+    if (nativeAd.getIcon() == null) {
+      iconView.setVisibility(View.INVISIBLE);
+    } else {
+      iconView.setImageDrawable(nativeAd.getIcon().getDrawable());
+      iconView.setVisibility(View.VISIBLE);
+    }
+
+    // --- Price (optional) ---
+    TextView priceView = (TextView) adView.getPriceView();
+    if (nativeAd.getPrice() == null) {
+      priceView.setVisibility(View.INVISIBLE);
+    } else {
+      priceView.setVisibility(View.VISIBLE);
+      priceView.setText(nativeAd.getPrice());
+    }
+
+    // --- Store (optional) ---
+    TextView storeView = (TextView) adView.getStoreView();
+    if (nativeAd.getStore() == null) {
+      storeView.setVisibility(View.INVISIBLE);
+    } else {
+      storeView.setVisibility(View.VISIBLE);
+      storeView.setText(nativeAd.getStore());
+    }
+
+    // --- Star Rating (optional) ---
+    RatingBar ratingBar = (RatingBar) adView.getStarRatingView();
+    if (nativeAd.getStarRating() == null) {
+      ratingBar.setVisibility(View.INVISIBLE);
+    } else {
+      ratingBar.setRating(nativeAd.getStarRating().floatValue());
+      ratingBar.setVisibility(View.VISIBLE);
+    }
+
+    // --- Advertiser (optional) ---
+    TextView advertiserView = (TextView) adView.getAdvertiserView();
+    if (nativeAd.getAdvertiser() == null) {
+      advertiserView.setVisibility(View.INVISIBLE);
+    } else {
+      advertiserView.setVisibility(View.VISIBLE);
+      advertiserView.setText(nativeAd.getAdvertiser());
+    }
+
+    adView.setNativeAd(nativeAd);
+    return adView;
+  }
+
+  /**
+   * Applies custom or default styling to Headline and Body TextViews.
+   * Falls back to default colors if customOptions is null or key is missing.
+   */
+  private void applyCustomTextStyle(
+          TextView headline,
+          TextView body,
+          Map<String, Object> customOptions
+  ) {
+    // Headline color — default if not provided
+    String headlineColor = DEFAULT_HEADLINE_COLOR;
+    if (customOptions != null && customOptions.containsKey("headlineTextColor")) {
+      Object val = customOptions.get("headlineTextColor");
+      if (val instanceof String) headlineColor = (String) val;
+    }
+    try {
+      headline.setTextColor(Color.parseColor(headlineColor));
+    } catch (IllegalArgumentException e) {
+      headline.setTextColor(Color.parseColor(DEFAULT_HEADLINE_COLOR));
+    }
+
+    // Body color — default if not provided
+    String bodyColor = DEFAULT_BODY_COLOR;
+    if (customOptions != null && customOptions.containsKey("bodyTextColor")) {
+      Object val = customOptions.get("bodyTextColor");
+      if (val instanceof String) bodyColor = (String) val;
+    }
+    try {
+      body.setTextColor(Color.parseColor(bodyColor));
+    } catch (IllegalArgumentException e) {
+      body.setTextColor(Color.parseColor(DEFAULT_BODY_COLOR));
+    }
+  }
+
+  /**
+   * Applies custom or default styling to the CTA Button.
+   * Uses GradientDrawable to preserve rounded corners.
+   *
+   * Supported options:
+   * - "buttonBackgroundColor": String hex color e.g. "#1976D2"
+   * - "buttonTextColor": String hex color e.g. "#FFFFFF"
+   * - "buttonCornerRadius": Double corner radius in dp e.g. 8.0
+   * - "buttonTextSize": Double text size in sp e.g. 16.0
+   * - "buttonMinHeight": Double min height in dp e.g. 48.0
+   */
+  private void applyCustomButtonStyle(
+          Button button,
+          Map<String, Object> customOptions
+  ) {
+    float density = button.getContext().getResources().getDisplayMetrics().density;
+
+    // Button background color — default if not provided
+    String bgColor = DEFAULT_BUTTON_BG_COLOR;
+    if (customOptions != null && customOptions.containsKey("buttonBackgroundColor")) {
+      Object val = customOptions.get("buttonBackgroundColor");
+      if (val instanceof String) bgColor = (String) val;
+    }
+
+    // Corner radius — default 8dp
+    float cornerRadiusDp = 8f;
+    if (customOptions != null && customOptions.containsKey("buttonCornerRadius")) {
+      Object val = customOptions.get("buttonCornerRadius");
+      if (val instanceof Number) cornerRadiusDp = ((Number) val).floatValue();
+    }
+    float cornerRadiusPx = cornerRadiusDp * density;
+
+    // ✅ GradientDrawable — rounded corners preserve thay
+    try {
+      GradientDrawable drawable = new GradientDrawable();
+      drawable.setShape(GradientDrawable.RECTANGLE);
+      drawable.setCornerRadius(cornerRadiusPx);
+      drawable.setColor(Color.parseColor(bgColor));
+      button.setBackground(drawable);
+    } catch (IllegalArgumentException e) {
+      GradientDrawable drawable = new GradientDrawable();
+      drawable.setShape(GradientDrawable.RECTANGLE);
+      drawable.setCornerRadius(cornerRadiusPx);
+      drawable.setColor(Color.parseColor(DEFAULT_BUTTON_BG_COLOR));
+      button.setBackground(drawable);
+    }
+
+    // Button text color — default if not provided
+    String textColor = DEFAULT_BUTTON_TEXT_COLOR;
+    if (customOptions != null && customOptions.containsKey("buttonTextColor")) {
+      Object val = customOptions.get("buttonTextColor");
+      if (val instanceof String) textColor = (String) val;
+    }
+    try {
+      button.setTextColor(Color.parseColor(textColor));
+    } catch (IllegalArgumentException e) {
+      button.setTextColor(Color.parseColor(DEFAULT_BUTTON_TEXT_COLOR));
+    }
+
+    // Button text size (optional)
+    if (customOptions != null && customOptions.containsKey("buttonTextSize")) {
+      Object val = customOptions.get("buttonTextSize");
+      if (val instanceof Number) {
+        button.setTextSize(((Number) val).floatValue());
+      }
+    }
+
+    // Button min height (optional)
+    if (customOptions != null && customOptions.containsKey("buttonMinHeight")) {
+      Object val = customOptions.get("buttonMinHeight");
+      if (val instanceof Number) {
+        int minHeightPx = (int) (((Number) val).floatValue() * density);
+        button.setMinHeight(minHeightPx);
+      }
+    }
+  }
+}

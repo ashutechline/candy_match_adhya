@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   firebase_core
+  firebase_remote_config
   url_launcher_windows
 )
 

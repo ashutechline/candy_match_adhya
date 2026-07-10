@@ -1,5 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../ads/banner_ad_builder.dart';
+import '../../ads/mixins/banner_ad_mixin.dart';
+import '../../ads/ad_service.dart';
 
 import '../../game_logic/game_logic.dart';
 import '../analytics/analytics_service.dart';
@@ -44,11 +49,13 @@ class _GameScreenState extends State<GameScreen> {
   final GlobalKey<BoardViewState> _boardKey = GlobalKey<BoardViewState>();
   bool _ended = false;
   bool _usedExtraMoves = false;
+  late final GameAdController _adController;
 
   @override
   void initState() {
     super.initState();
     AnalyticsService.instance.logScreenView('GameScreen');
+    _adController = Get.put(GameAdController());
     AnalyticsService.instance.logLevelStart(widget.level.id);
     _controller = GameController.forLevel(widget.level)
       ..addListener(_onControllerChange);
@@ -61,6 +68,7 @@ class _GameScreenState extends State<GameScreen> {
     }
     _controller.removeListener(_onControllerChange);
     _controller.dispose();
+    Get.delete<GameAdController>();
     super.dispose();
   }
 
@@ -101,18 +109,47 @@ class _GameScreenState extends State<GameScreen> {
 
   void _dispatch(EndAction action) {
     if (!mounted) return;
+    final isWin = _controller.status == GameStatus.won;
     switch (action) {
       case EndAction.next:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => GameScreen(
-            appState: widget.appState,
-            level: levelById(widget.level.id + 1),
-          ),
-        ));
+        Get.find<AdService>().showInterstitialAd(
+          isLevelUpdate: true,
+          onAdDismissed: () {
+            Navigator.of(context).pushReplacement(MaterialPageRoute(
+              builder: (_) => GameScreen(
+                appState: widget.appState,
+                level: levelById(widget.level.id + 1),
+              ),
+            ));
+          },
+          onAdFailed: () {
+            Navigator.of(context).pushReplacement(MaterialPageRoute(
+              builder: (_) => GameScreen(
+                appState: widget.appState,
+                level: levelById(widget.level.id + 1),
+              ),
+            ));
+          },
+        );
       case EndAction.replay:
-        _restart();
+        Get.find<AdService>().showInterstitialAd(
+          onAdDismissed: () {
+            _restart();
+          },
+          onAdFailed: () {
+            _restart();
+          },
+        );
       case EndAction.map:
-        Navigator.of(context).pop();
+        Get.find<AdService>().showInterstitialAd(
+          isLevelUpdate: isWin,
+          onAdDismissed: () {
+            Navigator.of(context).pop();
+          },
+          onAdFailed: () {
+            Navigator.of(context).pop();
+          },
+        );
       case EndAction.extraMoves:
         break;
     }
@@ -131,6 +168,21 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  Future<void> _handleQuitGame() async {
+    final shouldExit = await showExitGameDialog(context);
+    if (shouldExit && mounted) {
+      Get.find<AdService>().showInterstitialAd(
+        force: true,
+        onAdDismissed: () {
+          if (mounted) Navigator.of(context).pop();
+        },
+        onAdFailed: () {
+          if (mounted) Navigator.of(context).pop();
+        },
+      );
+    }
+  }
+
   void _useBooster(BoosterId id) {
     AudioService.instance.tap();
     final board = _boardKey.currentState;
@@ -138,14 +190,36 @@ class _GameScreenState extends State<GameScreen> {
       case BoosterId.lollipop:
         if (_controller.canUseBooster(id)) board?.armLollipop();
       case BoosterId.colorBomb:
-        final result = _controller.useColorBomb();
-        if (result != null) board?.playResult(result);
+        if (!_controller.isBusy) {
+          _useColorBombWithAd(board);
+        }
       case BoosterId.extraMoves:
         _controller.useExtraMoves();
       case BoosterId.shuffle:
         final shuffle = _controller.useShuffle();
         if (shuffle != null) board?.playShuffle(shuffle);
     }
+  }
+
+  Future<void> _useColorBombWithAd(BoardViewState? board) async {
+    final confirmed = await showColorBombAdDialog(context);
+    if (!confirmed) return;
+
+    final adService = Get.find<AdService>();
+    await adService.showRewardedAd(
+      onUserEarnedReward: () {
+        final result = _controller.useColorBombFree();
+        if (result != null) {
+          board?.playResult(result);
+        }
+      },
+      onAdFailed: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load ad. Please try again.')),
+        );
+      },
+      waitForDismiss: true,
+    );
   }
 
   int get _coins => 1000 + widget.appState.progress.totalStars * 40;
@@ -203,45 +277,76 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted) return;
     switch (action) {
       case 'settings':
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => SettingsScreen(appState: widget.appState),
-        ));
+        Get.find<AdService>().showInterstitialAd(
+          onAdDismissed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => SettingsScreen(appState: widget.appState),
+            ));
+          },
+          onAdFailed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => SettingsScreen(appState: widget.appState),
+            ));
+          },
+        );
       case 'help':
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => const HowToPlayScreen(),
-        ));
+        Get.find<AdService>().showInterstitialAd(
+          onAdDismissed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const HowToPlayScreen(),
+            ));
+          },
+          onAdFailed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const HowToPlayScreen(),
+            ));
+          },
+        );
       case 'restart':
-        _restart();
+        Get.find<AdService>().showInterstitialAd(
+          onAdDismissed: () {
+            _restart();
+          },
+          onAdFailed: () {
+            _restart();
+          },
+        );
       case 'quit':
-        Navigator.of(context).maybePop();
+        _handleQuitGame();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        _handleQuitGame();
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) => Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                  child: Column(
-                    children: [
-                      _TopBar(
-                        controller: _controller,
-                        coins: _coins,
-                        onQuit: () => Navigator.of(context).maybePop(),
-                        onSettings: _openPauseMenu,
-                      ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) => Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                    child: Column(
+                      children: [
+                        _TopBar(
+                          controller: _controller,
+                          coins: _coins,
+                          onQuit: _handleQuitGame,
+                          onSettings: _openPauseMenu,
+                        ),
                       const SizedBox(height: 10),
                       _StatCards(controller: _controller),
                       const SizedBox(height: 8),
@@ -269,12 +374,23 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
               _BottomBar(onMenu: _openPauseMenu),
+              Obx(() {
+                if (_adController.isBannerAdFailed.value) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  height: 60,
+                  alignment: Alignment.center,
+                  child: BannerAdBuilder.buildBannerAd(_adController, isAlwaysShow: true),
+                );
+              }),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // --- cute monster painter for level pill -------------------------------------
@@ -1366,5 +1482,13 @@ class _HintBanner extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class GameAdController extends GetxController with BannerAdMixin {
+  @override
+  void onInit() {
+    super.onInit();
+    loadBannerAdAlways();
   }
 }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Native Ad Dimensions -->
+    <dimen name="_56sdp">56dp</dimen>
+    <dimen name="_9sdp">9sp</dimen>
+    <dimen name="_2sdp">2dp</dimen>
+</resources>
+

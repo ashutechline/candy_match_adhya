@@ -6,8 +6,21 @@ import 'package:candy_crush/main.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:get/get.dart';
+import 'package:candy_crush/ads/ad_service.dart';
+import 'package:candy_crush/ads/controller/ads_response_service.dart';
+import 'package:candy_crush/ads/model/api_ads_respose.dart';
+
 void main() {
-  setUp(() => AudioService.instance.enabled = false);
+  setUp(() {
+    AudioService.instance.enabled = false;
+    Get.put<AdsResponseService>(MockAdsResponseService());
+    Get.put<AdService>(MockAdService());
+  });
+
+  tearDown(() {
+    Get.reset();
+  });
 
   testWidgets('launch splash shows, then navigates to the landing',
       (tester) async {
@@ -32,4 +45,20 @@ void main() {
     expect(find.text('MATCH 3 PUZZLE'), findsOneWidget);
     expect(find.text('PLAY NOW'), findsOneWidget);
   });
+}
+
+class MockAdsResponseService extends AdsResponseService {
+  @override
+  void onInit() {}
+
+  @override
+  AdsApiResponseData? getCreditEducationData() => null;
+}
+
+class MockAdService extends AdService {
+  @override
+  void onInit() {}
+
+  @override
+  Future<void> initializeAds() async {}
 }

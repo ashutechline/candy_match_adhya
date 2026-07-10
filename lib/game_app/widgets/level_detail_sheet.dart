@@ -44,6 +44,8 @@ Future<void> showLevelDetailSheet(
                 style: const TextStyle(
                     fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
+            _DifficultyBadge(difficulty: level.difficulty),
+            const SizedBox(height: 8),
             Text(level.objective.label,
                 style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 4),
@@ -89,4 +91,43 @@ Future<void> showLevelDetailSheet(
       ),
     ),
   );
+}
+
+/// A small pill showing the level's difficulty tier (Easy / Medium / Hard).
+class _DifficultyBadge extends StatelessWidget {
+  final LevelDifficulty difficulty;
+  const _DifficultyBadge({required this.difficulty});
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = switch (difficulty) {
+      LevelDifficulty.easy => (const Color(0xFF37D67A), Icons.sentiment_satisfied_rounded),
+      LevelDifficulty.medium => (const Color(0xFFFFC93C), Icons.local_fire_department_rounded),
+      LevelDifficulty.hard => (const Color(0xFFFF5C7A), Icons.whatshot_rounded),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(
+            difficulty.label.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

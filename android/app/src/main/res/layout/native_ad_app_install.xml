@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.gms.ads.nativead.NativeAdView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/native_ad_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- ROOT VERTICAL LAYOUT -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- VIDEO PLAYER SECTION -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#000000">
+
+            <!-- MEDIA VIEW (VIDEO) -->
+            <com.google.android.gms.ads.nativead.MediaView
+                android:id="@+id/ad_media"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="8dp"
+                android:clickable="false"
+                android:focusable="false"/>
+
+            <!-- INFO ICON OVERLAY (TOP RIGHT) -->
+            <TextView
+                android:id="@+id/ad_info_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/info_icon_background"
+                android:gravity="center"
+                android:text="i"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+
+        </FrameLayout>
+
+        <!-- AD BANNER SECTION (DARK GREY BACKGROUND) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="8dp"
+            android:paddingBottom="4dp"
+            android:paddingHorizontal="8dp"
+            android:background="#2C2C2C">
+
+            <!-- ICON + TEXT DETAILS ROW -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <!-- APP ICON -->
+                <ImageView
+                    android:id="@+id/app_icon"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginStart="8dp"
+                    android:scaleType="centerCrop"
+                    android:background="#2196F3"
+                    android:clickable="false"
+                    android:focusable="false"/>
+
+                <!-- CONTENT AREA -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <!-- APP NAME / HEADLINE -->
+                    <TextView
+                        android:id="@+id/app_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:clickable="false"
+                        android:focusable="false"/>
+
+                    <!-- AD TAG + RATING + STORE ROW -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="6dp">
+
+                        <!-- AD TAG -->
+                        <TextView
+                            android:id="@+id/ad_tag"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="#E91E63"
+                            android:text="Ad"
+                            android:textColor="#FFFFFF"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:paddingHorizontal="6dp"
+                            android:paddingVertical="3dp"
+                            android:minHeight="20dp"
+                            android:gravity="center"/>
+
+                        <!-- STAR RATING -->
+                        <RatingBar
+                            android:id="@+id/star_rating"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:numStars="5"
+                            android:stepSize="0.1"
+                            style="?android:attr/ratingBarStyleSmall"
+                            android:progressTint="#FFD700"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="8dp"
+                            android:clickable="false"
+                            android:focusable="false"/>
+
+                        <!-- STORE NAME -->
+                        <TextView
+                            android:id="@+id/store_name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="12sp"
+                            android:textColor="#FFFFFF"
+                            android:maxLines="1"
+                            android:clickable="false"
+                            android:focusable="false"/>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- INSTALL BUTTON (FULL WIDTH) -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/install_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="54dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/install_button_rounded"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textAllCaps="true"
+                android:text="INSTALL"
+                android:padding="8dp"
+                android:clickable="false"
+                android:focusable="false"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.gms.ads.nativead.NativeAdView>
+

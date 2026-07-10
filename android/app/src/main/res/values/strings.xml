@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="facebook_app_id">3164724803726382</string>
+  <string name="facebook_client_token">bb4bfdb12e4060f5f771491344cbb9d3</string>
+  <string name="fb_login_protocol_scheme">3164724803726382</string>
+  <string name="app_name">Candy Match</string>
+</resources>

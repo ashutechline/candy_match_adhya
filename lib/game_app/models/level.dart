@@ -1,14 +1,27 @@
 import '../../game_logic/game_logic.dart';
 import 'objective.dart';
 
-/// An immutable, hand-authored level definition. In a shipping game these would
-/// be JSON assets tuned via remote config; here they live in Dart for
-/// simplicity (see `data/levels.dart`).
+/// The difficulty tier a level belongs to.
+enum LevelDifficulty {
+  easy,
+  medium,
+  hard;
+
+  String get label => switch (this) {
+        LevelDifficulty.easy => 'Easy',
+        LevelDifficulty.medium => 'Medium',
+        LevelDifficulty.hard => 'Hard',
+      };
+}
+
+/// An immutable level definition. Levels are procedurally generated (see
+/// `data/levels.dart`) with a difficulty tier so the ramp reads clearly.
 class LevelDef {
   final int id;
   final int rows;
   final int cols;
   final Set<Position> blocked;
+  final LevelDifficulty difficulty;
 
   /// Initial jelly thickness per cell (only meaningful for jelly levels).
   final Map<Position, int> jelly;
@@ -35,6 +48,7 @@ class LevelDef {
     this.jelly = const {},
     this.palette = kDefaultPalette,
     this.seed,
+    this.difficulty = LevelDifficulty.easy,
   });
 
   /// Stars earned for a given [score] (0..3).

@@ -70,5 +70,20 @@
 	<array>
 		<string>https</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb3164724803726382</string>
+			</array>
+		</dict>
+	</array>
+	<key>FacebookAppID</key>
+	<string>3164724803726382</string>
+	<key>FacebookClientToken</key>
+	<string>bb4bfdb12e4060f5f771491344cbb9d3</string>
+	<key>FacebookDisplayName</key>
+	<string>Candy Match</string>
 </dict>
 </plist>

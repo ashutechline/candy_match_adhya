@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../ads/ad_service.dart';
 import '../analytics/analytics_service.dart';
 import '../game/app_state.dart';
 import '../update/update_service.dart';
-import '../theme/candy_theme.dart';
 import 'splash_screen.dart';
 
 /// The launch/loading splash shown at startup: the app logo on the themed
@@ -27,6 +28,8 @@ class _LaunchScreenState extends State<LaunchScreen>
     super.initState();
     AnalyticsService.instance.logScreenView('LaunchScreen');
     UpdateService.instance.checkForUpdates();
+    // Preload App Open Ad in the background so it is ready when loading completes
+    Get.find<AdService>().loadAppOpenAd(showOnLoad: false);
   }
 
   late final AnimationController _c = AnimationController(
@@ -34,14 +37,34 @@ class _LaunchScreenState extends State<LaunchScreen>
     duration: const Duration(milliseconds: 1900),
   )
     ..addStatusListener((s) {
-      if (s == AnimationStatus.completed) _goToLanding();
+      if (s == AnimationStatus.completed) _handleStartAdAndNavigate();
     })
     ..forward();
   bool _navigated = false;
 
+  Future<void> _handleStartAdAndNavigate() async {
+    if (_navigated || !mounted) return;
+
+    final adService = Get.find<AdService>();
+    final adData = adService.adsResponseService.getCreditEducationData();
+
+    if (adData != null &&
+        adData.adStart &&
+        adData.openAdFirstStart &&
+        adData.splashAppOpan) {
+      print('📺 LaunchScreen: Requesting App Open Ad showing on splash screen');
+      // showAppOpenAd will load the ad if it is not ready, wait up to 6 seconds, and show it.
+      // passing waitForDismiss: true ensures we wait until it's dismissed before transitioning.
+      await adService.showAppOpenAd(waitForDismiss: true);
+    }
+
+    _goToLanding();
+  }
+
   void _goToLanding() {
     if (_navigated || !mounted) return;
     _navigated = true;
+    Get.find<AdService>().markSplashNavigationComplete();
     Navigator.of(context).pushReplacement(PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (_, _, _) => SplashScreen(appState: widget.appState),

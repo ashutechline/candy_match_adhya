@@ -1,10 +1,15 @@
-import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'firebase_options.dart';
+import 'ads/ad_service.dart';
+import 'ads/controller/ads_response_service.dart';
 import 'game_app/analytics/analytics_service.dart';
 import 'game_app/notifications/notification_service.dart';
 
@@ -16,51 +21,96 @@ import 'game_app/screens/launch_screen.dart';
 import 'game_app/theme/candy_theme.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await GetStorage.init();
 
-  if (!kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS)) {
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      final isMobile = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS);
 
-      // Register background messaging handler
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      if (isMobile) {
+        try {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+          Get.put(FirebaseAnalytics.instance);
 
-      // Pass all uncaught "fatal" errors from the framework to Crashlytics
-      FlutterError.onError = (errorDetails) {
-        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-      };
+          // Register background messaging handler
+          FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-      PlatformDispatcher.instance.onError = (error, stack) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-        return true;
-      };
-    } catch (e) {
-      debugPrint('Firebase initialization failed: $e');
-    }
-  }
-  AnalyticsService.instance.init();
-  await NotificationService.instance.init();
+          await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+          FlutterError.onError = (FlutterErrorDetails details) {
+            final msg = details.exception.toString();
+            final isGmaJsEngineError = msg.contains('LoadAdError') &&
+                msg.contains('com.google.android.gms.ads') &&
+                msg.contains('Unable to obtain a JavascriptEngine');
+            final isPlatformViewAlreadyAdded =
+                msg.contains('PlatformView#getView') && msg.contains('already added to a parent view');
+            final isAdMobInternalError = msg.contains('LoadAdError') &&
+                msg.contains('com.google.android.gms.ads') &&
+                msg.contains('Internal error.');
+            if (isGmaJsEngineError || isPlatformViewAlreadyAdded || isAdMobInternalError) {
+              FirebaseCrashlytics.instance.recordFlutterError(details);
+            } else {
+              FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+            }
+          };
+        } catch (e) {
+          debugPrint('Firebase initialization failed: $e');
+        }
+      }
 
-  await AudioService.instance.init();
-  await SettingsService.instance.init();
+      Get.put(AdsResponseService(), permanent: true);
+      final adService = Get.put(AdService(), permanent: true);
+      await adService.initializeAds();
 
-  // Prefer local persistence; fall back to in-memory if storage is unavailable
-  // (e.g. an unsupported platform) so the game still runs.
-  ProgressStore store;
-  try {
-    store = SharedPrefsProgressStore();
-    await store.load();
-  } catch (_) {
-    store = InMemoryProgressStore();
-  }
-  final appState = await AppState.load(store);
+      AnalyticsService.instance.init();
+      await NotificationService.instance.init();
 
-  runApp(CandyMatchApp(appState: appState));
+      await AudioService.instance.init();
+      await SettingsService.instance.init();
+
+      // Prefer local persistence; fall back to in-memory if storage is unavailable
+      // (e.g. an unsupported platform) so the game still runs.
+      ProgressStore store;
+      try {
+        store = SharedPrefsProgressStore();
+        await store.load();
+      } catch (_) {
+        store = InMemoryProgressStore();
+      }
+      final appState = await AppState.load(store);
+
+      runApp(CandyMatchApp(appState: appState));
+    },
+    (error, stack) {
+      final msg = error.toString();
+      final isGmaJsEngineError = msg.contains('LoadAdError') &&
+          msg.contains('com.google.android.gms.ads') &&
+          msg.contains('Unable to obtain a JavascriptEngine');
+      final isPlatformViewAlreadyAdded =
+          msg.contains('PlatformView#getView') && msg.contains('already added to a parent view');
+      final isAdMobInternalError =
+          msg.contains('LoadAdError') && msg.contains('com.google.android.gms.ads') && msg.contains('Internal error.');
+      final isNonFatal = isGmaJsEngineError || isPlatformViewAlreadyAdded || isAdMobInternalError;
+
+      final isMobile = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS);
+
+      if (isMobile) {
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stack,
+          fatal: !isNonFatal,
+        );
+      } else {
+        debugPrint('Zoned error: $error\n$stack');
+      }
+    },
+  );
 }
 
 class CandyMatchApp extends StatefulWidget {
@@ -95,11 +145,16 @@ class _CandyMatchAppState extends State<CandyMatchApp> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Candy Match',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      navigatorObservers: [
+        if (Get.isRegistered<FirebaseAnalytics>())
+          FirebaseAnalyticsObserver(analytics: Get.find<FirebaseAnalytics>()),
+      ],
       home: LaunchScreen(appState: widget.appState),
     );
   }
 }
+

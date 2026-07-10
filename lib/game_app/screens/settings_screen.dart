@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:get/get.dart';
+
+import '../../ads/ad_service.dart';
 
 import '../analytics/analytics_service.dart';
 import '../audio/audio_service.dart';
@@ -49,7 +52,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: const Icon(Icons.arrow_back_rounded),
                       onPressed: () {
                         AudioService.instance.tap();
-                        Navigator.of(context).maybePop();
+                        Get.find<AdService>().showInterstitialAd(
+                          onAdDismissed: () {
+                            Navigator.of(context).maybePop();
+                          },
+                          onAdFailed: () {
+                            Navigator.of(context).maybePop();
+                          },
+                        );
                       },
                     ),
                     const Text('Settings',
@@ -132,9 +142,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           trailing: const Icon(Icons.chevron_right_rounded),
                           onTap: () {
                             AudioService.instance.tap();
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => const HowToPlayScreen(),
-                            ));
+                            Get.find<AdService>().showInterstitialAd(
+                              onAdDismissed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => const HowToPlayScreen(),
+                                ));
+                              },
+                              onAdFailed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => const HowToPlayScreen(),
+                                ));
+                              },
+                            );
                           },
                         ),
                         ListTile(

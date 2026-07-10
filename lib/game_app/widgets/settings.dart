@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../ads/ad_service.dart';
 import '../audio/audio_service.dart';
 import '../game/app_state.dart';
 import '../screens/settings_screen.dart';
@@ -26,9 +28,18 @@ class SettingsButton extends StatelessWidget {
       icon: const Icon(Icons.settings_rounded),
       onPressed: () {
         AudioService.instance.tap();
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => SettingsScreen(appState: appState),
-        ));
+        Get.find<AdService>().showInterstitialAd(
+          onAdDismissed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => SettingsScreen(appState: appState),
+            ));
+          },
+          onAdFailed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => SettingsScreen(appState: appState),
+            ));
+          },
+        );
       },
     );
   }

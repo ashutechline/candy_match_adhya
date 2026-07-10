@@ -1,11 +1,17 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:get/get.dart';
 
+import '../../ads/banner_ad_builder.dart';
+import '../../ads/mixins/banner_ad_mixin.dart';
+import '../../ads/ad_service.dart';
 import '../analytics/analytics_service.dart';
 import '../audio/audio_service.dart';
 import '../game/app_state.dart';
+import '../widgets/dialogs.dart';
 import '../widgets/settings.dart';
 import 'how_to_play_screen.dart';
 import 'launch_screen.dart';
@@ -25,10 +31,23 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
+  late final SplashAdController _adController;
+
   @override
   void initState() {
     super.initState();
     AnalyticsService.instance.logScreenView('SplashScreen');
+    _adController = Get.put(SplashAdController());
+
+    // Show background loaded ad if openAdFirstStart is true but splashAppOpan is false
+    final adService = Get.find<AdService>();
+    final adData = adService.adsResponseService.getCreditEducationData();
+    if (adData != null &&
+        adData.adStart &&
+        adData.openAdFirstStart &&
+        !adData.splashAppOpan) {
+      adService.showBackgroundLoadedAd();
+    }
   }
 
   late final AnimationController _intro = AnimationController(
@@ -44,14 +63,24 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _intro.dispose();
     _spin.dispose();
+    Get.delete<SplashAdController>();
     super.dispose();
   }
 
   void _play() {
     AudioService.instance.tap();
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => LevelMapScreen(appState: widget.appState),
-    ));
+    Get.find<AdService>().showInterstitialAd(
+      onAdDismissed: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => LevelMapScreen(appState: widget.appState),
+        ));
+      },
+      onAdFailed: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => LevelMapScreen(appState: widget.appState),
+        ));
+      },
+    );
   }
 
   /// Staggered fade + rise driven by the shared intro controller.
@@ -75,44 +104,64 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldExit = await showExitAppDialog(context);
+        if (shouldExit && context.mounted) {
+          Get.find<AdService>().showInterstitialAd(
+            force: true,
+            onAdDismissed: () {
+              SystemNavigator.pop();
+            },
+            onAdFailed: () {
+              SystemNavigator.pop();
+            },
+          );
+        }
+      },
+      child: Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
           const Positioned.fill(child: _SplashBackground()),
           _Decorations(spin: _spin),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact = constraints.maxHeight < 720;
-                return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24, isCompact ? 10 : 20, 24, 24),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - (isCompact ? 34 : 44),
+          Obx(() {
+            final adActive = !_adController.isBannerAdFailed.value;
+            return SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxHeight < 720;
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(24, isCompact ? 10 : 20, 24, adActive ? 84 : 24),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight - (isCompact ? 34 : 44),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(height: isCompact ? 4 : 8),
+                          _in(0.0, 0.45, const _MatchPill()),
+                          SizedBox(height: isCompact ? 10 : 22),
+                          _in(0.1, 0.6, CandyMatchLogo(width: isCompact ? 210 : 290)),
+                          SizedBox(height: isCompact ? 8 : 14),
+                          _in(0.25, 0.7, const _StarsRow()),
+                          SizedBox(height: isCompact ? 12 : 26),
+                          _in(0.35, 0.85, const _CandyShowcase()),
+                          SizedBox(height: isCompact ? 20 : 40),
+                          _in(0.5, 0.95, _PlayButton(onTap: _play)),
+                          SizedBox(height: isCompact ? 12 : 24),
+                          _in(0.7, 1.0, const _FooterCredit()),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(height: isCompact ? 4 : 8),
-                        _in(0.0, 0.45, const _MatchPill()),
-                        SizedBox(height: isCompact ? 10 : 22),
-                        _in(0.1, 0.6, CandyMatchLogo(width: isCompact ? 210 : 290)),
-                        SizedBox(height: isCompact ? 8 : 14),
-                        _in(0.25, 0.7, const _StarsRow()),
-                        SizedBox(height: isCompact ? 12 : 26),
-                        _in(0.35, 0.85, const _CandyShowcase()),
-                        SizedBox(height: isCompact ? 20 : 40),
-                        _in(0.5, 0.95, _PlayButton(onTap: _play)),
-                        SizedBox(height: isCompact ? 12 : 24),
-                        _in(0.7, 1.0, const _FooterCredit()),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+                  );
+                },
+              ),
+            );
+          }),
           // Top-right controls are the LAST (topmost) layer so they reliably
           // receive taps — above the full-screen scroll view.
           SafeArea(
@@ -131,9 +180,18 @@ class _SplashScreenState extends State<SplashScreen>
                         tooltip: 'How to play',
                         onPressed: () {
                           AudioService.instance.tap();
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => const HowToPlayScreen(),
-                          ));
+                          Get.find<AdService>().showInterstitialAd(
+                            onAdDismissed: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const HowToPlayScreen(),
+                              ));
+                            },
+                            onAdFailed: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => const HowToPlayScreen(),
+                              ));
+                            },
+                          );
                         },
                       ),
                       SettingsButton(appState: widget.appState),
@@ -143,10 +201,29 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Obx(() {
+              if (_adController.isBannerAdFailed.value) {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                color: Colors.transparent,
+                alignment: Alignment.center,
+                child: SafeArea(
+                  top: false,
+                  child: BannerAdBuilder.buildBannerAd(_adController, isAlwaysShow: true),
+                ),
+              );
+            }),
+          ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // --- palette ----------------------------------------------------------------
@@ -685,4 +762,12 @@ class _Sparkle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Icon(Icons.auto_awesome,
       size: size, color: Colors.white.withValues(alpha: 0.85));
+}
+
+class SplashAdController extends GetxController with BannerAdMixin {
+  @override
+  void onInit() {
+    super.onInit();
+    loadBannerAdAlways();
+  }
 }

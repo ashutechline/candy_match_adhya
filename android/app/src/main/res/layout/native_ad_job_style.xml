@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.gms.ads.nativead.NativeAdView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/native_ad_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/theme_rounded_card">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:paddingHorizontal="1dp">
+
+        <!-- Top Section: Info + Media -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginHorizontal="4dp"
+            android:baselineAligned="false">
+
+            <!-- Left side: Badge, Headline, Body -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/ad_notification_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ad"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_ad_badge_theme"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="1dp"
+                    android:layout_marginBottom="6dp"/>
+
+                <TextView
+                    android:id="@+id/primary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    android:textColor="#FF5CA8"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:layout_marginBottom="4dp"
+                    android:clickable="false"
+                    android:focusable="false"/>
+
+                <TextView
+                    android:id="@+id/body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="13sp"
+                    android:textColor="#F3ECFF"
+                    android:maxLines="3"
+                    android:ellipsize="end"
+                    android:clickable="false"
+                    android:focusable="false"/>
+
+            </LinearLayout>
+
+            <!-- Right side: Media -->
+            <com.google.android.gms.ads.nativead.MediaView
+                android:id="@+id/media_view"
+                android:layout_width="120dp"
+                android:layout_height="140dp"
+                android:layout_marginStart="12dp"
+                android:layout_gravity="center_vertical"
+                android:minWidth="120dp"
+                android:minHeight="120dp"
+                android:clickable="false"
+                android:focusable="false"/>
+
+        </LinearLayout>
+
+        <!-- CTA Full Width -->
+        <TextView
+            android:id="@+id/cta"
+            android:layout_width="match_parent"
+            android:layout_height="53dp"
+            android:gravity="center"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_cta_green"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:clickable="false"
+            android:focusable="false"
+            android:text="Install"/>
+
+    </LinearLayout>
+</com.google.android.gms.ads.nativead.NativeAdView>

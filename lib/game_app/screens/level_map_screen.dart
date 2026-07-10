@@ -1,7 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../ads/banner_ad_builder.dart';
+import '../../ads/mixins/banner_ad_mixin.dart';
+import '../../ads/ad_service.dart';
 import '../analytics/analytics_service.dart';
 import '../audio/audio_service.dart';
 import '../data/levels.dart';
@@ -9,11 +13,7 @@ import '../game/app_state.dart';
 import '../models/level.dart';
 import '../theme/candy_theme.dart';
 import '../widgets/level_detail_sheet.dart';
-import '../widgets/settings.dart';
 import 'game_screen.dart';
-import 'profile_screen.dart';
-import 'settings_screen.dart';
-import 'shop_screen.dart';
 
 /// Information about a themed world zone on the level map.
 class WorldInfo {
@@ -101,18 +101,25 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   static const double _spacing = 118;
   static const double _topPad = 140;
   static const double _bottomPad = 160;
-  static const int _totalLevelsCount = 100;
+
+  /// Levels are endless. The map always shows at least the first 100, then
+  /// keeps a few nodes ahead of the player's frontier so there is never a wall
+  /// to progress past — once you clear level 100, 101+ appear automatically.
+  int get _totalLevelsCount =>
+      math.max(100, widget.appState.progress.highestUnlocked + 5);
 
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
   )..repeat(reverse: true);
   final ScrollController _scroll = ScrollController();
+  late final MapAdController _adController;
 
   @override
   void initState() {
     super.initState();
     AnalyticsService.instance.logScreenView('LevelMapScreen');
+    _adController = Get.put(MapAdController());
     widget.appState.addListener(_onProgressChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
   }
@@ -126,6 +133,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     widget.appState.removeListener(_onProgressChanged);
     _pulse.dispose();
     _scroll.dispose();
+    Get.delete<MapAdController>();
     super.dispose();
   }
 
@@ -156,9 +164,20 @@ class _LevelMapScreenState extends State<LevelMapScreen>
       context,
       level: level,
       bestStars: widget.appState.progress.starsFor(level.id),
-      onPlay: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => GameScreen(appState: widget.appState, level: level),
-      )),
+      onPlay: () {
+        Get.find<AdService>().showInterstitialAd(
+          onAdDismissed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => GameScreen(appState: widget.appState, level: level),
+            ));
+          },
+          onAdFailed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => GameScreen(appState: widget.appState, level: level),
+            ));
+          },
+        );
+      },
     );
   }
 
@@ -297,77 +316,102 @@ class _LevelMapScreenState extends State<LevelMapScreen>
         color: AppColors.background,
         child: Stack(
           children: [
-            SafeArea(
-              child: Column(
-                children: [
-                  _MapHeader(appState: widget.appState),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, c) {
-                        final width = c.maxWidth;
-                        final count = _totalLevelsCount;
-                        final height =
-                            _topPad + count * _spacing + _bottomPad;
-                        final centers = [
-                          for (var i = 0; i < count; i++)
-                            Offset(_nodeX(i, width), _topPad + (count - 1 - i) * _spacing),
-                        ];
-                        return SingleChildScrollView(
-                          controller: _scroll,
-                          child: SizedBox(
-                            width: width,
-                            height: height,
-                            child: Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: CustomPaint(
-                                      painter: _WorldBackgroundPainter()),
-                                ),
-                                Positioned.fill(
-                                  child: CustomPaint(
-                                      painter: _PathPainter(centers)),
-                                ),
-                                // Decor elements along the path
-                                for (var i = 2; i < count - 2; i += 4)
-                                  _positionedDecoration(i, width),
+            Obx(() {
+              final adActive = !_adController.isBannerAdFailed.value;
+              final bottomPad = _bottomPad + (adActive ? 60 : 0);
+              return SafeArea(
+                child: Column(
+                  children: [
+                    _MapHeader(appState: widget.appState),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, c) {
+                          final width = c.maxWidth;
+                          final count = _totalLevelsCount;
+                          final height =
+                              _topPad + count * _spacing + bottomPad;
+                          final centers = [
+                            for (var i = 0; i < count; i++)
+                              Offset(_nodeX(i, width), _topPad + (count - 1 - i) * _spacing),
+                          ];
+                          return SingleChildScrollView(
+                            controller: _scroll,
+                            child: SizedBox(
+                              width: width,
+                              height: height,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                        painter: _WorldBackgroundPainter()),
+                                  ),
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                        painter: _PathPainter(centers)),
+                                  ),
+                                  // Decor elements along the path
+                                  for (var i = 2; i < count - 2; i += 4)
+                                    _positionedDecoration(i, width),
+                                    
+                                  // World banners between worlds
+                                  ..._buildWorldBanners(width),
                                   
-                                // World banners between worlds
-                                ..._buildWorldBanners(width),
-                                
-                                // Landmarks next to path
-                                ..._buildLandmarks(width),
+                                  // Landmarks next to path
+                                  ..._buildLandmarks(width),
 
-                                // Level nodes themselves
-                                for (var i = 0; i < count; i++)
-                                  _positionedNode(i, centers[i]),
-                              ],
+                                  // Level nodes themselves
+                                  for (var i = 0; i < count; i++)
+                                    _positionedNode(i, centers[i]),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 32,
-              right: 32,
-              bottom: 24,
-              child: SafeArea(
-                top: false,
-                bottom: true,
-                left: false,
-                right: false,
-                child: _FloatingPlayButton(
-                  appState: widget.appState,
-                  onTap: () {
-                    final currentLevelId = math.min(widget.appState.progress.highestUnlocked, _totalLevelsCount);
-                    final currentLevel = levelById(currentLevelId);
-                    _openLevel(currentLevel);
-                  },
+                  ],
                 ),
-              ),
+              );
+            }),
+            Obx(() {
+              final adActive = !_adController.isBannerAdFailed.value;
+              return Positioned(
+                left: 32,
+                right: 32,
+                bottom: adActive ? 84 : 24,
+                child: SafeArea(
+                  top: false,
+                  bottom: true,
+                  left: false,
+                  right: false,
+                  child: _FloatingPlayButton(
+                    appState: widget.appState,
+                    onTap: () {
+                      final currentLevelId = widget.appState.progress.highestUnlocked;
+                      final currentLevel = levelById(currentLevelId);
+                      _openLevel(currentLevel);
+                    },
+                  ),
+                ),
+              );
+            }),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Obx(() {
+                if (_adController.isBannerAdFailed.value) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  color: Colors.transparent,
+                  alignment: Alignment.center,
+                  child: SafeArea(
+                    top: false,
+                    child: BannerAdBuilder.buildBannerAd(_adController, isAlwaysShow: true),
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -420,7 +464,14 @@ class _MapHeader extends StatelessWidget {
           child: GestureDetector(
             onTap: () {
               AudioService.instance.tap();
-              Navigator.of(context).maybePop();
+              Get.find<AdService>().showInterstitialAd(
+                onAdDismissed: () {
+                  Navigator.of(context).maybePop();
+                },
+                onAdFailed: () {
+                  Navigator.of(context).maybePop();
+                },
+              );
             },
             child: Container(
               width: 44,
@@ -908,7 +959,7 @@ class _FloatingPlayButton extends StatelessWidget {
     return AnimatedBuilder(
       animation: appState,
       builder: (context, _) {
-        final currentLevelId = math.min(appState.progress.highestUnlocked, 100);
+        final currentLevelId = appState.progress.highestUnlocked;
         return GestureDetector(
           onTap: onTap,
           child: Container(
@@ -960,5 +1011,13 @@ class _FloatingPlayButton extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class MapAdController extends GetxController with BannerAdMixin {
+  @override
+  void onInit() {
+    super.onInit();
+    loadBannerAdAlways();
   }
 }

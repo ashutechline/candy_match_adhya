@@ -250,6 +250,87 @@ void main() {
         }
       }
     });
+
+    test('levels stay valid and endless well past level 100', () {
+      // No wall at 100: 101..140 must still generate solvable, live boards.
+      for (var id = 100; id <= 140; id++) {
+        final level = generateLevel(id);
+        expect(level.id, id);
+        final c = GameController.forLevel(level);
+        expect(c.board.isFull, isTrue, reason: 'level $id not full');
+        expect(hasAnyMatch(c.board), isFalse,
+            reason: 'level $id starts matched');
+        expect(c.engine.hasAnyMove(c.board), isTrue,
+            reason: 'level $id is a dead board');
+        expect(level.moveLimit, greaterThan(0));
+      }
+    });
+
+    test('every objective type is winnable in moves across 1..140', () {
+      for (var id = 1; id <= 140; id++) {
+        final level = generateLevel(id);
+        final o = level.objective;
+        if (o is CollectColors) {
+          final maxQuota = o.quotas.values.reduce((a, b) => a > b ? a : b);
+          expect(level.moveLimit, greaterThanOrEqualTo(maxQuota),
+              reason: 'level $id collect: $maxQuota quota vs '
+                  '${level.moveLimit} moves');
+        } else if (o is ClearAllJelly) {
+          // Need at least ~1 move per jelly layer to have a shot at clearing.
+          final layers =
+              level.jelly.values.fold<int>(0, (sum, v) => sum + v);
+          expect(level.moveLimit, greaterThanOrEqualTo(layers),
+              reason: 'level $id jelly: $layers layers vs '
+                  '${level.moveLimit} moves');
+        }
+      }
+    });
+
+    test('difficulty tiers are deterministic and cover the ramp', () {
+      // difficultyFor matches the tier baked into the generated level.
+      for (var id = 1; id <= 140; id++) {
+        expect(generateLevel(id).difficulty, difficultyFor(id),
+            reason: 'level $id tier mismatch');
+      }
+
+      // All three tiers appear within the first 100 levels.
+      final tiers = [for (var id = 1; id <= 100; id++) difficultyFor(id)];
+      expect(tiers.contains(LevelDifficulty.easy), isTrue);
+      expect(tiers.contains(LevelDifficulty.medium), isTrue);
+      expect(tiers.contains(LevelDifficulty.hard), isTrue);
+
+      // The ramp gets harder: more Hard levels in the back half than the front.
+      int hardIn(int lo, int hi) => [
+            for (var id = lo; id <= hi; id++) difficultyFor(id)
+          ].where((t) => t == LevelDifficulty.hard).length;
+      expect(hardIn(51, 100), greaterThan(hardIn(1, 50)),
+          reason: 'difficulty should ramp up over the first 100 levels');
+
+      // Every 10th level is a Hard boss.
+      for (final boss in [10, 20, 50, 90, 100]) {
+        expect(difficultyFor(boss), LevelDifficulty.hard,
+            reason: 'level $boss should be a boss');
+      }
+
+      // Endless play never drops back to Easy after level 100.
+      for (var id = 101; id <= 200; id++) {
+        expect(difficultyFor(id), isNot(LevelDifficulty.easy),
+            reason: 'level $id fell back to Easy');
+      }
+    });
+
+    test('board size grows with difficulty tier', () {
+      for (var id = 1; id <= 100; id++) {
+        final level = generateLevel(id);
+        final expected = switch (level.difficulty) {
+          LevelDifficulty.easy => 7,
+          LevelDifficulty.medium => 8,
+          LevelDifficulty.hard => 9,
+        };
+        expect(level.rows, expected, reason: 'level $id size');
+        expect(level.cols, expected, reason: 'level $id size');
+      }
+    });
   });
 
   group('progression', () {

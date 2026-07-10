@@ -13,12 +13,22 @@ import 'package:candy_crush/game_app/screens/splash_screen.dart';
 import 'package:candy_crush/game_app/theme/candy_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:candy_crush/ads/ad_service.dart';
+import 'package:candy_crush/ads/controller/ads_response_service.dart';
+import 'package:candy_crush/ads/model/api_ads_respose.dart';
 
 AppState _appState() => AppState(InMemoryProgressStore(), const PlayerProgress());
 
 void main() {
   setUp(() {
     AudioService.instance.enabled = false;
+    Get.put<AdsResponseService>(MockAdsResponseService());
+    Get.put<AdService>(MockAdService());
+  });
+
+  tearDown(() {
+    Get.reset();
   });
 
   Future<void> phone(WidgetTester tester) async {
@@ -49,13 +59,11 @@ void main() {
       theme: buildAppTheme(),
       home: GameScreen(appState: _appState(), level: levelById(1)),
     ));
-    await tester.pump(); // build board
     await tester.pump(const Duration(seconds: 1));
 
     expect(tester.takeException(), isNull);
-    expect(find.text('SCORE'), findsOneWidget);
-    expect(find.text('TARGET'), findsOneWidget);
-    expect(find.text('Lollipop'), findsOneWidget); // booster label
+    expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
+    expect(find.text('Level 1'), findsOneWidget);
   });
 
   testWidgets('settings page renders its sections', (tester) async {
@@ -75,7 +83,7 @@ void main() {
   });
 
   test('resetProgress wipes stars and re-locks levels', () async {
-    final app = AppState(InMemoryProgressStore(), const PlayerProgress());
+    final app = _appState();
     await app.recordLevelResult(1, 3);
     expect(app.progress.totalStars, 3);
     expect(app.progress.highestUnlocked, 2);
@@ -132,4 +140,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Settings'), findsOneWidget);
   });
+}
+
+class MockAdsResponseService extends AdsResponseService {
+  @override
+  void onInit() {}
+
+  @override
+  AdsApiResponseData? getCreditEducationData() => null;
+}
+
+class MockAdService extends AdService {
+  @override
+  void onInit() {}
+
+  @override
+  Future<void> initializeAds() async {}
 }
