@@ -24,6 +24,7 @@
 # Google Mobile Ads (AdMob) Rules
 -keep class com.google.android.gms.ads.** { *; }
 -keep class com.google.android.gms.internal.ads.** { *; }
+-keep class io.flutter.plugins.googlemobileadsexample.** { *; }
 
 # Flutter Play Core Deferred Components Missing Warnings
 -dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication

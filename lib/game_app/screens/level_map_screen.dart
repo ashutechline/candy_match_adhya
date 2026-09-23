@@ -138,13 +138,22 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   }
 
   void _scrollToCurrent() {
-    if (!_scroll.hasClients) return;
+    if (!_scroll.hasClients) {
+      Future.delayed(const Duration(milliseconds: 50), _scrollToCurrent);
+      return;
+    }
     final progressVal = widget.appState.progress.highestUnlocked;
     final currentLevel = math.min(progressVal, _totalLevelsCount);
     final index = currentLevel - 1; // 0-indexed representation
     if (index < 0) return;
     
     final viewportHeight = _scroll.position.viewportDimension;
+    // If viewport height is 0, the scroll view hasn't fully laid out yet.
+    if (viewportHeight == 0.0 || _scroll.position.maxScrollExtent == 0.0) {
+      Future.delayed(const Duration(milliseconds: 50), _scrollToCurrent);
+      return;
+    }
+
     final nodeY = _topPad + (_totalLevelsCount - 1 - index) * _spacing;
     final target = (nodeY - (viewportHeight > 0 ? viewportHeight / 2 : 300))
         .clamp(0.0, _scroll.position.maxScrollExtent);
