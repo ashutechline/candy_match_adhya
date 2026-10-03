@@ -12,6 +12,7 @@ import 'ads/ad_service.dart';
 import 'ads/controller/ads_response_service.dart';
 import 'game_app/analytics/analytics_service.dart';
 import 'game_app/notifications/notification_service.dart';
+import 'game_app/purchases/purchase_service.dart';
 
 import 'game_app/audio/audio_service.dart';
 import 'game_app/data/progress_store.dart';
@@ -25,6 +26,8 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
       await GetStorage.init();
+      // Before any ad loads: a bought "Remove ads" must gate the first request.
+      PurchaseService.instance.loadEntitlements();
 
       final isMobile = !kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||
@@ -36,6 +39,8 @@ Future<void> main() async {
             options: DefaultFirebaseOptions.currentPlatform,
           );
           Get.put(FirebaseAnalytics.instance);
+          // Before ads init: ad paid events and screen views need it ready.
+          await AnalyticsService.instance.init();
 
           // Register background messaging handler
           FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -66,7 +71,7 @@ Future<void> main() async {
       final adService = Get.put(AdService(), permanent: true);
       await adService.initializeAds();
 
-      AnalyticsService.instance.init();
+      unawaited(PurchaseService.instance.init());
       await NotificationService.instance.init();
 
       await AudioService.instance.init();

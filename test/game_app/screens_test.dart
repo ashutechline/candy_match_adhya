@@ -79,7 +79,12 @@ void main() {
     expect(find.text('Music'), findsOneWidget);
     expect(find.text('Sound effects'), findsOneWidget);
     expect(find.text('Reduced motion'), findsOneWidget);
-    expect(find.text('Reset progress'), findsOneWidget);
+    // The list is lazy: scroll the lower sections into view before checking.
+    final list = find.byType(Scrollable).first;
+    for (final label in ['Rate us', 'Shop', 'Reset progress']) {
+      await tester.scrollUntilVisible(find.text(label), 200, scrollable: list);
+      expect(find.text(label), findsOneWidget);
+    }
   });
 
   test('resetProgress wipes stars and re-locks levels', () async {
@@ -121,6 +126,28 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Shop'), findsOneWidget);
     expect(find.text('Your balance'), findsOneWidget);
+    // Real-money items show a fallback price until the store answers.
+    expect(find.text('Remove ads'), findsOneWidget);
+    expect(find.text('\$2.99'), findsOneWidget);
+    expect(find.text('Restore purchases'), findsOneWidget);
+  });
+
+  testWidgets('shop buy/restore without a store explains instead of failing',
+      (tester) async {
+    await phone(tester);
+    await tester.pumpWidget(MaterialApp(
+        theme: buildAppTheme(), home: ShopScreen(appState: _appState())));
+    await tester.pump();
+
+    await tester.tap(find.text('\$2.99')); // Remove ads
+    await tester.pump();
+    expect(find.text('Store not available right now. Try again later.'),
+        findsOneWidget);
+
+    await tester.ensureVisible(find.text('Restore purchases'));
+    await tester.tap(find.text('Restore purchases'));
+    await tester.pump();
+    expect(find.text('Store not available right now.'), findsOneWidget);
   });
 
   testWidgets('landing has no facebook/guest and its settings gear opens',

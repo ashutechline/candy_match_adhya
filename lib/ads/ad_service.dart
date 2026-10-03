@@ -7,6 +7,8 @@ import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
   // import 'package:easy_audience_network/easy_audience_network.dart' as facebook;
   import '../Utility/color_constants.dart';
+  import '../firebase_options.dart';
+  import '../game_app/purchases/purchase_service.dart';
   import 'ad_revenue_logger.dart';
   import 'controller/ads_response_service.dart';
   import 'mixins/interstitial_ad_mixin.dart';
@@ -447,7 +449,7 @@ import 'mixins/rewarded_ad_mixin.dart';
 
     /// Check if ads are enabled based on AdStart flag
     bool _areAdsEnabled() {
-
+      if (PurchaseService.instance.adsRemoved) return false;
       final adData = adsResponseService.getCreditEducationData();
       if (adData == null) {
         return false;
@@ -463,8 +465,16 @@ import 'mixins/rewarded_ad_mixin.dart';
     /// Initialize Google Mobile Ads SDK and Facebook Audience Network
     Future<void> initializeAds() async {
       try {
-        // Ensure Firebase initialize properly before ad loading
-        await Firebase.initializeApp();
+        // Ensure Firebase initialize properly before ad loading. main() already
+        // did it with options; only retry if that failed, and never let a
+        // Firebase failure skip the Mobile Ads SDK init below.
+        if (Firebase.apps.isEmpty) {
+          try {
+            await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+          } catch (e) {
+            print('⚠️ AdService: Firebase unavailable, continuing without it: $e');
+          }
+        }
         await MobileAds.instance.initialize();
 
         // Fetch ads configurations/gating flags from mock or Remote Config

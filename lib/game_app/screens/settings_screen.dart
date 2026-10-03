@@ -8,8 +8,10 @@ import '../analytics/analytics_service.dart';
 import '../audio/audio_service.dart';
 import '../game/app_state.dart';
 import '../game/settings_service.dart';
+import '../review/review_service.dart';
 import '../theme/candy_theme.dart';
 import 'how_to_play_screen.dart';
+import 'shop_screen.dart';
 
 /// Full settings page: audio, accessibility, progress and about.
 class SettingsScreen extends StatefulWidget {
@@ -158,6 +160,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.star_rate_rounded,
+                              color: AppColors.gold),
+                          title: const Text('Rate us'),
+                          trailing: const Icon(Icons.open_in_new_rounded),
+                          onTap: () {
+                            AudioService.instance.tap();
+                            ReviewService.instance.openStoreListing();
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.privacy_tip_rounded),
                           title: const Text('Privacy Policy'),
                           trailing: const Icon(Icons.open_in_new_rounded),
@@ -180,6 +193,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             try {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             } catch (_) {}
+                          },
+                        ),
+                      ],
+                    ),
+                    _Section(
+                      title: 'Shop',
+                      children: [
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.storefront_rounded,
+                              color: AppColors.gold),
+                          title: const Text('Shop'),
+                          subtitle: Text('Remove ads, unlock all levels',
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6))),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            AudioService.instance.tap();
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) =>
+                                  ShopScreen(appState: widget.appState),
+                            ));
                           },
                         ),
                       ],

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../ad_service.dart';
 import '../controller/ads_response_service.dart';
+import '../../game_app/purchases/purchase_service.dart';
 
 /// Mixin to provide reusable banner ad loading functionality
 /// Use this mixin in any controller that needs to display banner ads
@@ -125,6 +126,7 @@ mixin BannerAdMixin on GetxController {
 
   /// Check if ads are enabled
   bool _areAdsEnabled() {
+    if (PurchaseService.instance.adsRemoved) return false;
     if (!Get.isRegistered<AdsResponseService>()) {
       return false;
     }

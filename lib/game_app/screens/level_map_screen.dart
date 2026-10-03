@@ -7,6 +7,7 @@ import '../../ads/banner_ad_builder.dart';
 import '../../ads/mixins/banner_ad_mixin.dart';
 import '../../ads/ad_service.dart';
 import '../analytics/analytics_service.dart';
+import '../purchases/purchase_service.dart';
 import '../audio/audio_service.dart';
 import '../data/levels.dart';
 import '../game/app_state.dart';
@@ -121,6 +122,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
     AnalyticsService.instance.logScreenView('LevelMapScreen');
     _adController = Get.put(MapAdController());
     widget.appState.addListener(_onProgressChanged);
+    PurchaseService.instance.addListener(_onProgressChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
   }
 
@@ -131,6 +133,7 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   @override
   void dispose() {
     widget.appState.removeListener(_onProgressChanged);
+    PurchaseService.instance.removeListener(_onProgressChanged);
     _pulse.dispose();
     _scroll.dispose();
     Get.delete<MapAdController>();
@@ -431,7 +434,8 @@ class _LevelMapScreenState extends State<LevelMapScreen>
   Widget _positionedNode(int i, Offset center) {
     final level = levelById(i + 1);
     final progress = widget.appState.progress;
-    final unlocked = progress.isUnlocked(level.id);
+    final unlocked = progress.isUnlocked(level.id) ||
+        PurchaseService.instance.allLevelsUnlocked;
     final stars = progress.starsFor(level.id);
     final isCurrent = level.id == progress.highestUnlocked;
     const nodeW = 68.0;

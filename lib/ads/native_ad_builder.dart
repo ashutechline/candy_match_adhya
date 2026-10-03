@@ -5,6 +5,7 @@ import 'small_native_ad_widget.dart';
 import 'facebook_native_ad_widget.dart';
 import 'mixins/native_ad_mixin.dart';
 import 'controller/ads_response_service.dart';
+import '../game_app/purchases/purchase_service.dart';
 import 'ad_shimmer_widgets.dart';
 
 class NativeAdBuilder {
@@ -13,7 +14,7 @@ class NativeAdBuilder {
 
     
     final adData = Get.find<AdsResponseService>().getCreditEducationData();
-    if (adData != null && !adData.adStart) {
+    if (PurchaseService.instance.adsRemoved || (adData != null && !adData.adStart)) {
       return const SizedBox.shrink();
     }
 
@@ -52,7 +53,7 @@ class NativeAdBuilder {
 
 
     final adData = Get.find<AdsResponseService>().getCreditEducationData();
-    if (adData != null && !adData.adStart) {
+    if (PurchaseService.instance.adsRemoved || (adData != null && !adData.adStart)) {
       return const SizedBox.shrink();
     }
 

@@ -8,6 +8,7 @@ import '../../ads/ad_service.dart';
 
 import '../../game_logic/game_logic.dart';
 import '../analytics/analytics_service.dart';
+import '../review/review_service.dart';
 import '../audio/audio_service.dart';
 import '../data/levels.dart';
 import '../game/app_state.dart';
@@ -84,6 +85,8 @@ class _GameScreenState extends State<GameScreen> {
     if (_controller.status == GameStatus.won) {
       final stars = _controller.starsEarned;
       AnalyticsService.instance.logLevelEnd(widget.level.id, true, _controller.score, stars);
+      final firstClear =
+          widget.level.id >= widget.appState.progress.highestUnlocked;
       await widget.appState.recordLevelResult(widget.level.id, stars);
       if (!mounted) return;
       final action = await showWinDialog(
@@ -92,6 +95,10 @@ class _GameScreenState extends State<GameScreen> {
         score: _controller.score,
         hasNext: true, // levels are endless — always a next one
       );
+      // After the player has seen their stars, before any interstitial.
+      if (firstClear) {
+        await ReviewService.instance.maybePromptAfterFirstClear(widget.level.id);
+      }
       _dispatch(action);
     } else {
       final action =
@@ -156,7 +163,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _restart() {
-    AnalyticsService.instance.logLevelEnd(widget.level.id, false, _controller.score, 0);
+    // A finished game already logged its level_end (win or loss) in _handleEnd;
+    // only a mid-game restart abandons the attempt.
+    if (!_ended) {
+      AnalyticsService.instance.logLevelEnd(widget.level.id, false, _controller.score, 0);
+    }
     AnalyticsService.instance.logLevelStart(widget.level.id);
     setState(() {
       _controller.removeListener(_onControllerChange);

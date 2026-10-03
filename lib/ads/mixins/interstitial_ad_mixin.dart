@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../ad_service.dart';
 import '../ad_revenue_logger.dart';
 import '../controller/ads_response_service.dart';
+import '../../game_app/purchases/purchase_service.dart';
 
 mixin InterstitialAdMixin on DisposableInterface {
   AdsResponseService get adsResponseService => Get.find<AdsResponseService>();
@@ -245,6 +246,7 @@ mixin InterstitialAdMixin on DisposableInterface {
   }
 
   bool _areAdsEnabled() {
+    if (PurchaseService.instance.adsRemoved) return false;
     final adData = adsResponseService.getCreditEducationData();
     if (adData == null) return false;
     return adData.adStart;

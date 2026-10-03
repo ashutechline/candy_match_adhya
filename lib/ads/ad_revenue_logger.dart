@@ -1,15 +1,18 @@
 import 'dart:developer' as developer;
-import 'package:facebook_app_events/facebook_app_events.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import '../game_app/analytics/analytics_service.dart';
 
 /// Centralized logger for tracking AdMob ad revenue using Firebase Analytics and Facebook App Events.
 class AdRevenueLogger {
-  static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
-  static final FacebookAppEvents _facebookAppEvents = FacebookAppEvents();
+  // Duplicate callback prevention: ad hashCode -> (valueMicros, time) of the last logged event.
+  static final Map<int, (double, DateTime)> _lastLoggedByAd = {};
 
-  // Duplicate callback prevention cache
-  static final Set<int> _loggedAdHashcodes = {};
+  /// A repeat of the same ad + same value inside this window is a duplicate
+  /// callback. Anything later is a genuine new impression — banners refresh
+  /// every 30–60s on the SAME ad object and each refresh is paid separately,
+  /// so blocking by hashCode alone dropped all banner revenue after the first.
+  static const Duration _duplicateWindow = Duration(seconds: 2);
 
   /// Unified method to log ad revenue.
   /// Converts valueMicros to normal currency value, logs to Firebase Analytics 'ad_impression' event,
@@ -30,23 +33,25 @@ class AdRevenueLogger {
 
       // 11. Safety Check: Duplicate callback prevention
       if (adHashCode != null) {
-        if (_loggedAdHashcodes.contains(adHashCode)) {
+        final now = DateTime.now();
+        final last = _lastLoggedByAd[adHashCode];
+        if (last != null && last.$1 == valueMicros && now.difference(last.$2) < _duplicateWindow) {
           developer.log(
             '⚠️ Duplicate onPaidEvent blocked for format=$adFormat, unit=$adUnitId, revenue=$revenue',
             name: 'AdRevenueLogger',
           );
           return;
         }
-        _loggedAdHashcodes.add(adHashCode);
+        _lastLoggedByAd[adHashCode] = (valueMicros, now);
         // Limit cache size to prevent memory leaks
-        if (_loggedAdHashcodes.length > 500) {
-          _loggedAdHashcodes.remove(_loggedAdHashcodes.first);
+        if (_lastLoggedByAd.length > 500) {
+          _lastLoggedByAd.remove(_lastLoggedByAd.keys.first);
         }
       }
 
       // 9. Add test logs (Required console outputs)
       print("🔥 onPaidEvent Triggered");
-      print("💰 Revenue: $revenue");
+      print("💰 Revenue: $revenue $currencyCode (precision=${precision.name})");
 
       // 5. Add detailed debug logs
       developer.log(
@@ -54,59 +59,13 @@ class AdRevenueLogger {
         name: 'AdRevenueLogger',
       );
 
-      // 3. Every onPaidEvent ma proper Firebase Analytics event send karo
-      _analytics.logEvent(
-        name: 'ad_impression',
-        parameters: {
-          'ad_platform': 'admob',
-          'ad_source': 'admob',
-          'ad_unit_name': adUnitId,
-          'ad_format': adFormat,
-          'currency': currencyCode,
-          'value': revenue,
-        },
-      ).then((_) {
-        // 9. print "📡 Firebase Event Sent" on success
-        print("📡 Firebase Event Sent");
-        developer.log(
-          '✅ Firebase Analytics ad_impression logged successfully for format=$adFormat, revenue=$revenue',
-          name: 'AdRevenueLogger',
-        );
-      }).catchError((error) {
-        // 5. print Firebase event failed details
-        print("❌ Firebase Event Failed to Send");
-        developer.log(
-          '❌ Failed to log ad revenue event to Firebase Analytics: $error',
-          name: 'AdRevenueLogger',
-          error: error,
-        );
-      });
-
-      // Log to Facebook App Events
-      _facebookAppEvents.logEvent(
-        name: 'ad_impression',
-        parameters: {
-          'ad_platform': 'admob',
-          'ad_source': 'admob',
-          'ad_unit_name': adUnitId,
-          'ad_format': adFormat,
-          'currency': currencyCode,
-          'value': revenue,
-        },
-      ).then((_) {
-        print("📡 Facebook App Event Sent");
-        developer.log(
-          '✅ Facebook App Events ad_impression logged successfully for format=$adFormat, revenue=$revenue',
-          name: 'AdRevenueLogger',
-        );
-      }).catchError((error) {
-        print("❌ Facebook App Event Failed to Send");
-        developer.log(
-          '❌ Failed to log ad revenue event to Facebook App Events: $error',
-          name: 'AdRevenueLogger',
-          error: error,
-        );
-      });
+      // 3. Every onPaidEvent ma proper Firebase Analytics + Facebook event send karo
+      AnalyticsService.instance.logAdRevenue(
+        revenue: revenue,
+        currencyCode: currencyCode,
+        adUnitId: adUnitId,
+        adFormat: adFormat,
+      );
     } catch (e, stackTrace) {
       developer.log(
         '❌ Exception in logAdRevenue: $e',
