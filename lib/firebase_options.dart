@@ -51,15 +51,14 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBiBWw0Lf5hjFsEClAkfp43eca06fz6khM',
-    appId: '1:303600090084:android:76f62ebb91f6c58cfbe5f1',
+    appId: '1:303600090084:android:a2843b6d97160116fbe5f1',
     messagingSenderId: '303600090084',
     projectId: 'candy-match-aadhya',
     storageBucket: 'candy-match-aadhya.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCCvKofu95JNK157StSFoIqoSVk9My-AR4',
-    appId: '1:303600090084:ios:37058e2e52b116fbfbe5f1',
+    appId: '1:303600090084:ios:be6593ad710d7ad4fbe5f1',
     messagingSenderId: '303600090084',
     projectId: 'candy-match-aadhya',
     storageBucket: 'candy-match-aadhya.firebasestorage.app',
